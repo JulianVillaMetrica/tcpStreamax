@@ -25,13 +25,9 @@ public class ClientHandler implements Runnable {
 
     private boolean boolConnection= true;
     public ClientHandler(Socket socket) {
-        while (boolConnection) {
+
             try {
                 this.socket = socket;
-            /*    this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-
-                this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));*/
-                //     this.clientInfo = bufferedReader.readLine();
 
                 InputStream stream = socket.getInputStream();
                 byte[] dataIni = new byte[474];
@@ -58,8 +54,12 @@ public class ClientHandler implements Runnable {
                 int startIndex = dataString.indexOf('{');       //problema si es null??
 
                 // Extrae la parte del JSON a partir del primer '{' hasta el final de la cadena
-
-                String jsonWithoutPrefix = dataString.substring(startIndex);
+                String jsonWithoutPrefix;
+            /*    if(finalIndex==-1||finalIndex==-0)
+                     jsonWithoutPrefix = dataString.substring(startIndex);
+                else
+                     jsonWithoutPrefix = dataString.substring(startIndex,finalIndex);*/
+                jsonWithoutPrefix = dataString.substring(startIndex);
                 String jsonPrefix = dataString.substring(0, startIndex);
 
 
@@ -107,29 +107,93 @@ public class ClientHandler implements Runnable {
                 encapHeader[7] = ef[3];
                 sendMessageToClient(encapHeader, messageBytes);
 
-                System.out.println("antes del read");
-               /* String lineaRespuesta = bufferedReader.readLine();
-                System.out.println(lineaRespuesta);*/
-
-               /* InputStream stream = socket.getInputStream();
-                byte[] dataIni = new byte[474];
-                int count = stream.read(dataIni);
-                byte[] data = new byte[count];
-*/
+                System.out.println("Ya paso el connect");
+                //! ----------------------------------------------------------------------------------------------------
                 /*Se empieza a hacer la parte de la respuesta*/
-                InputStream streamRes = socket.getInputStream();
+
                 byte[] dataIniRes = new byte[1000];
                 int countRes =stream.read(dataIniRes);
                 byte[] dataRes = new byte[countRes];
                 dataRes = dataIniRes;
                 //  byte[] data2 = new byte[count2];
                 System.out.println(Arrays.toString(dataRes));
+                Header headerRes = new Header();
+                header.setV(dataRes[0]);
+                header.setP(dataRes[1]);
+                header.setM(dataRes[2]);
+                header.setCSRC_COUNT(dataRes[3]);
+                header.setPLAYLOAD_TYPE(dataRes[4]);
+                header.setSSRC(dataRes[5]);
+                header.setPLAYLOAD_LEN(Arrays.copyOfRange(dataRes, 6, 8));
+                header.setRESERVE(Arrays.copyOfRange(dataRes, 8, 10));
+                header.setCSRC(Arrays.copyOfRange(dataRes, 10, 12));
+
+                 dataString = new String(dataRes, StandardCharsets.UTF_8); // UTF-8 es un conjunto de caracteres comúnmente utilizado
+                System.out.println(dataString);
+
+                // Encuentra la posición del primer '{' para determinar el inicio del JSON
+                 startIndex = dataString.indexOf('{');       //problema si es null??
+                int finalIndex = dataString.indexOf("}}");
+                finalIndex=finalIndex+2;
+                // Extrae la parte del JSON a partir del primer '{' hasta el final de la cadena
+              //  String jsonWithoutPrefix;
+            /*    if(finalIndex==-1||finalIndex==-0)
+                     jsonWithoutPrefix = dataString.substring(startIndex);
+                else
+                     jsonWithoutPrefix = dataString.substring(startIndex,finalIndex);*/
+                jsonWithoutPrefix = dataString.substring(startIndex,finalIndex);
+                 jsonPrefix = dataString.substring(0, startIndex);
+
+                //clientHandlers.
+                clientHandlers.add(this);
+                lr = gson.fromJson(jsonWithoutPrefix, LoginRequest.class);
+
+                //Mostrar que recibe del json el sessionID - Si lo hace
+            //    clientSessionID = lr.getSESSION();
+                System.out.println(clientSessionID);
+
+                encapHeader = new byte[12];
+
+                encapHeader[0] = header.getV();
+                encapHeader[1] = header.getP();
+                encapHeader[2] = header.getM();
+                encapHeader[3] = header.getCSRC_COUNT();
+                encapHeader[4] = header.getPLAYLOAD_TYPE();
+                encapHeader[5] = header.getSSRC();
+                 ef = new byte[2];
+                ef = header.getPLAYLOAD_LEN();
+                encapHeader[6] = ef[0];
+                encapHeader[7] = ef[1];
+                gh = new byte[2];
+
+                 ij = new byte[2];
+                gh = header.getRESERVE();
+                ij = header.getCSRC();
+                encapHeader[8] = gh[0];
+                encapHeader[9] = gh[1];
+                encapHeader[10] = ij[0];
+                encapHeader[11] = ij[1];
+                 message = Response.responseSupport(lr,clientSessionID);
 
 
+                //poner el payload len
+                messageBytes = message.getBytes();
+                numberBytes = messageBytes.length;
+                buffer = ByteBuffer.allocate(4);
+                buffer.putInt(numberBytes);
+
+                // Obtén el array de bytes resultante
+                ef = buffer.array();
+                header.setPLAYLOAD_LEN(ef);
+                encapHeader[6] = ef[2];
+                encapHeader[7] = ef[3];
+                sendMessageToClient(encapHeader, messageBytes);
+
+                System.out.println("Ya paso el getsupportservice");
             } catch (IOException e) {
           //        closeEverything(socket, bufferedReader, bufferedWriter);
             }
-
+        while (boolConnection) {
         }
     }
 
@@ -142,10 +206,6 @@ public class ClientHandler implements Runnable {
         OutputStream outputStream = socket.getOutputStream();
 
         outputStream.write(messageCompleto);
-
-    /*    bufferedWriter.write(result);
-        bufferedWriter.newLine();
-        bufferedWriter.flush();*/
     }
     @Override
     public void run() {

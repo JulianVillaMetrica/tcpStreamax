@@ -12,7 +12,14 @@ public class Response {
 
         return json;
     }
+    public static String responseSupport(LoginRequest lr,String sessionId){
+        String json = "{\"MODULE\":\"" + lr.getMODULE() + "\","
+                + "\"OPERATION\":\"" + lr.getOPERATION() + "\","
+                + Parameters(lr)
+                + "\"SESSION\":\"" + sessionId + "\"}";
 
+        return json;
+    }
     public static String Parameters(LoginRequest lr){
         String param = "";
 
