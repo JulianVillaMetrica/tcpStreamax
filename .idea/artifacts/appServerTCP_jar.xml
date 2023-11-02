@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="appServerTCP:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/appServerTCP_jar</output-path>
+    <root id="archive" name="appServerTCP.jar">
+      <element id="module-output" name="appServerTCP" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/Libraries/gson-2.8.6.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
