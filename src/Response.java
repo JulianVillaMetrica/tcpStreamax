@@ -4,14 +4,26 @@ public class Response {
     private static int devType;
     private static int maskCMD;
     private static String pro;
+
+    private static String sessionId = null;
     public static String response(LoginRequest lr){
+        if(lr.getSESSION() != null)
+            sessionId= lr.getSESSION();
+
         String json = "{\"MODULE\":\"" + lr.getMODULE() + "\","
                 + "\"OPERATION\":\"" + lr.getOPERATION() + "\","
                 + Parameters(lr)
-                + "\"SESSION\":\"" + lr.getSESSION() + "\"}";
+                + "\"SESSION\":\"" + sessionId + "\"}";
 
         return json;
     }
+    public static String response(LoginRequest lr, String MODULE, String OPERATION, String request) {
+        return "{\"MODULE\":\"" + MODULE + "\","
+                + "\"OPERATION\":\"" + OPERATION + "\","
+                + "\"SESSION\":\"" + lr.getSESSION() + "\","
+                + "\"PARAMETER\":{" + request + "}}";
+    }
+
     public static String responseSupport(LoginRequest lr,String sessionId){
         String json = "{\"MODULE\":\"" + lr.getMODULE() + "\","
                 + "\"OPERATION\":\"" + lr.getOPERATION() + "\","
