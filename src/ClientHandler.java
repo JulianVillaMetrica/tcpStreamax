@@ -25,6 +25,9 @@ public class ClientHandler implements Runnable {
     int  numberBytes;
 
     private boolean boolConnection= true;
+
+    /*variables de prueba*/
+    int c=0;
     Header header = new Header();
     public ClientHandler(Socket socket) throws IOException {
 
@@ -193,10 +196,19 @@ public class ClientHandler implements Runnable {
 
             System.out.println("Ya paso el getsupportservice");
 
+            //String respuesta = "{\"MODULE\":\"DEVEMM\",\"OPERATION\":\"GETDEVALLVERSIONS\",\"SESSION\":\""+clientSessionID+"}";
 
-            String respuesta = "{\"MODULE\":\"DEVEMM\",\"OPERATION\":\"GETDEVVERSIONINFO\",\"PARAMETER\":{\"MODE\":1},\"SESSION\":\"" + clientSessionID + "\"}";
+               String respuesta = "{\"MODULE\":\"DEVEMM\",\"OPERATION\":\"GETDEVVERSIONINFO\",\"PARAMETER\":{\"MODE\":0},\"SESSION\":\"" + clientSessionID + "\"}";
             messageBytes = respuesta.getBytes();
             numberBytes = messageBytes.length;
+            buffer = ByteBuffer.allocate(4);
+            buffer.putInt(numberBytes);
+
+            // Obtén el array de bytes resultante
+            ef = buffer.array();
+            header.setPLAYLOAD_LEN(ef);
+            encapHeader[6] = ef[2];
+            encapHeader[7] = ef[3];
             sendMessageToClient(encapHeader, messageBytes);
             dataIniRes = new byte[1000];
             countRes = stream.read(dataIniRes);
@@ -206,6 +218,26 @@ public class ClientHandler implements Runnable {
             System.out.println(dataString);
             System.out.println("final?");
 
+            String res2="{\"MODULE\":\"DEVEMM\",\"OPERATION\":\"GETDEVALLVERSIONS\",\"SESSION\":\""+clientSessionID+"}";
+            messageBytes =res2.getBytes();
+            numberBytes = messageBytes.length;
+
+            buffer = ByteBuffer.allocate(4);
+            buffer.putInt(numberBytes);
+
+            // Obtén el array de bytes resultante
+            ef = buffer.array();
+            header.setPLAYLOAD_LEN(ef);
+            encapHeader[6] = ef[2];
+            encapHeader[7] = ef[3];
+            sendMessageToClient(encapHeader, messageBytes);
+
+            countRes = stream.read(dataIniRes);
+            dataRes = new byte[countRes];
+            dataRes = dataIniRes;
+            dataString = new String(dataRes, StandardCharsets.UTF_8); // UTF-8 es un conjunto de caracteres comúnmente utilizado
+            System.out.println(dataString);
+            System.out.println("Se repite el get devversion info");
                 /* respuesta = "{\"MODULE\":\"DEVEMM\",\"OPERATION\":\"GETDEVVERSIONINFO\",\"PARAMETER\":{\"MODE\":1},\"SESSION\":\""+clientSessionID+"\"}";
                 messageBytes = respuesta.getBytes();
                 numberBytes = messageBytes.length;
@@ -220,7 +252,7 @@ public class ClientHandler implements Runnable {
                 */
         } catch (IOException e) {
             //        closeEverything(socket, bufferedReader, bufferedWriter);
-        }
+        }/*
         while (boolConnection) {
             OutputRequest.GetDevVersionInfo(lr);
             byte[] encapHeader = new byte[12];
@@ -260,7 +292,15 @@ public class ClientHandler implements Runnable {
             encapHeader[7] = ef[3];
             sendMessageToClient(encapHeader, messageBytes);
             wait(1000);
+
+            if(c<=2){
+                c++;
+            }else {
+                boolConnection=false;
+
+            }
         }
+        */
     }
 
     public void sendMessageToClient(byte[] byteArray,byte[] messageBytes) throws IOException {
