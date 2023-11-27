@@ -1,15 +1,11 @@
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import com.google.gson.Gson;
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class ClientHandler implements Runnable {
 
@@ -22,7 +18,6 @@ public class ClientHandler implements Runnable {
     private LoginRequest lr = null;
     private  String clientSessionID;
     private boolean isFirstConnection = true;
-    int  numberBytes;
 
     private boolean boolConnection= true;
 
@@ -32,224 +27,109 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket socket) throws IOException {
 
         try {
-            this.socket = socket;
 
-            InputStream stream = socket.getInputStream();
-            byte[] dataIni = new byte[474];
-            int count = stream.read(dataIni);
-            byte[] data = new byte[count];
-            data = dataIni;
-            header = new Header();
-            header.setV(data[0]);
-            header.setP(data[1]);
-            header.setM(data[2]);
-            header.setCSRC_COUNT(data[3]);
-            header.setPLAYLOAD_TYPE(data[4]);
-            header.setSSRC(data[5]);
-            header.setPLAYLOAD_LEN(Arrays.copyOfRange(data, 6, 8));
-            header.setRESERVE(Arrays.copyOfRange(data, 8, 10));
-            header.setCSRC(Arrays.copyOfRange(data, 10, 12));
+            while(true){
+                /*---------------------------------------- Comunicacion Cliente - Servidor ----------------------------------------*/
+                this.socket = socket;
 
-            //    byte[] jsonBytes = (Arrays.copyOfRange(data, 12, data.length - 1)); // Convertir bytes a arreglo de bytes
+                /* LECTURA DE DATOS */
 
-            String dataString = new String(data, StandardCharsets.UTF_8); // UTF-8 es un conjunto de caracteres comúnmente utilizado
-            System.out.println(dataString);
-
-            // Encuentra la posición del primer '{' para determinar el inicio del JSON
-            int startIndex = dataString.indexOf('{');       //problema si es null??
-
-            // Extrae la parte del JSON a partir del primer '{' hasta el final de la cadena
-            String jsonWithoutPrefix;
-            /*    if(finalIndex==-1||finalIndex==-0)
-                     jsonWithoutPrefix = dataString.substring(startIndex);
-                else
-                     jsonWithoutPrefix = dataString.substring(startIndex,finalIndex);*/
-            jsonWithoutPrefix = dataString.substring(startIndex);
-            String jsonPrefix = dataString.substring(0, startIndex);
+                // Se crea un objeto InputStream para estar leyendo la entrada continua del socket
+                InputStream stream = socket.getInputStream();
+                // Se crea un arreglo para meter los datos que se reciban, de momento de tamaño bastante grande
+                byte[] dataIni = new byte[100000];
+            /* En un entero se almacena el tamaño de los datos que entraron
+               y a su vez se le pasa a dataIni los datos de entrada de stream*/
+                int count = stream.read(dataIni);
+                // Se crea un arreglo secundario
+                byte[] data;
+                // Se inicializa el arreglo secundario solo con los datos de entrada (quitando el espacio restante)
+                data = Arrays.copyOfRange(dataIni,0,count);
 
 
-            clientHandlers.add(this);
-            lr = gson.fromJson(jsonWithoutPrefix, LoginRequest.class);
 
-            //Mostrar que recibe del json el sessionID - Si lo hace
-            clientSessionID = lr.getSESSION();
-            System.out.println(clientSessionID);
+                /* RECOLECTAR LOS DATOS DEL HEADER ENTRANTE */
 
-            byte[] encapHeader = new byte[12];
-
-            encapHeader[0] = header.getV();
-            encapHeader[1] = header.getP();
-            encapHeader[2] = header.getM();
-            encapHeader[3] = header.getCSRC_COUNT();
-            encapHeader[4] = header.getPLAYLOAD_TYPE();
-            encapHeader[5] = header.getSSRC();
-            byte[] ef = new byte[2];
-            ef = header.getPLAYLOAD_LEN();
-            encapHeader[6] = ef[0];
-            encapHeader[7] = ef[1];
-            byte[] gh = new byte[2];
-
-            byte[] ij = new byte[2];
-            gh = header.getRESERVE();
-            ij = header.getCSRC();
-            encapHeader[8] = gh[0];
-            encapHeader[9] = gh[1];
-            encapHeader[10] = ij[0];
-            encapHeader[11] = ij[1];
-            String message = Response.response(lr);
+                header = new Header();
+                header.setV(data[0]);
+                header.setP(data[1]);
+                header.setM(data[2]);
+                header.setCSRC_COUNT(data[3]);
+                header.setPLAYLOAD_TYPE(data[4]);
+                header.setSSRC(data[5]);
+                header.setPLAYLOAD_LEN(Arrays.copyOfRange(data, 6, 8));
+                header.setRESERVE(Arrays.copyOfRange(data, 8, 10));
+                header.setCSRC(Arrays.copyOfRange(data, 10, 12));
 
 
-            //poner el payload len
-            byte[] messageBytes = message.getBytes();
-            numberBytes = messageBytes.length;
-            ByteBuffer buffer = ByteBuffer.allocate(4);
-            buffer.putInt(numberBytes);
 
-            // Obtén el array de bytes resultante
-            ef = buffer.array();
-            header.setPLAYLOAD_LEN(ef);
-            encapHeader[6] = ef[2];
-            encapHeader[7] = ef[3];
-            sendMessageToClient(encapHeader, messageBytes);
+                /* RECOLECTAR LOS DATOS DEL CUERPO DEL MENSAJE */
 
-            System.out.println("Ya paso el connect");
-            //! ----------------------------------------------------------------------------------------------------
-            /*Se empieza a hacer la parte de la respuesta*/
-
-            byte[] dataIniRes = new byte[1000];
-            int countRes = stream.read(dataIniRes);
-            byte[] dataRes = new byte[countRes];
-            dataRes = dataIniRes;
-            //  byte[] data2 = new byte[count2];
-            //System.out.println(Arrays.toString(dataRes));
-            Header headerRes = new Header();
-            header.setV(dataRes[0]);
-            header.setP(dataRes[1]);
-            header.setM(dataRes[2]);
-            header.setCSRC_COUNT(dataRes[3]);
-            header.setPLAYLOAD_TYPE(dataRes[4]);
-            header.setSSRC(dataRes[5]);
-            header.setPLAYLOAD_LEN(Arrays.copyOfRange(dataRes, 6, 8));
-            header.setRESERVE(Arrays.copyOfRange(dataRes, 8, 10));
-            header.setCSRC(Arrays.copyOfRange(dataRes, 10, 12));
-
-            dataString = new String(dataRes, StandardCharsets.UTF_8); // UTF-8 es un conjunto de caracteres comúnmente utilizado
-            System.out.println(dataString);
-
-            // Encuentra la posición del primer '{' para determinar el inicio del JSON
-            startIndex = dataString.indexOf('{');       //problema si es null??
-            int finalIndex = dataString.indexOf("}}");
-            finalIndex = finalIndex + 2;
-            // Extrae la parte del JSON a partir del primer '{' hasta el final de la cadena
-            //  String jsonWithoutPrefix;
-            /*    if(finalIndex==-1||finalIndex==-0)
-                     jsonWithoutPrefix = dataString.substring(startIndex);
-                else
-                     jsonWithoutPrefix = dataString.substring(startIndex,finalIndex);*/
-            jsonWithoutPrefix = dataString.substring(startIndex, finalIndex);
-            jsonPrefix = dataString.substring(0, startIndex);
-
-            //clientHandlers.
-            clientHandlers.add(this);
-            lr = gson.fromJson(jsonWithoutPrefix, LoginRequest.class);
-
-            //Mostrar que recibe del json el sessionID - Si lo hace
-            //    clientSessionID = lr.getSESSION();
-            System.out.println(clientSessionID);
-
-            encapHeader = new byte[12];
-
-            encapHeader[0] = header.getV();
-            encapHeader[1] = header.getP();
-            encapHeader[2] = header.getM();
-            encapHeader[3] = header.getCSRC_COUNT();
-            encapHeader[4] = header.getPLAYLOAD_TYPE();
-            encapHeader[5] = header.getSSRC();
-            ef = new byte[2];
-            ef = header.getPLAYLOAD_LEN();
-            encapHeader[6] = ef[0];
-            encapHeader[7] = ef[1];
-            gh = new byte[2];
-
-            ij = new byte[2];
-            gh = header.getRESERVE();
-            ij = header.getCSRC();
-            encapHeader[8] = gh[0];
-            encapHeader[9] = gh[1];
-            encapHeader[10] = ij[0];
-            encapHeader[11] = ij[1];
-            message = Response.response(lr);
+                // Crear un String haciendo la conversion del arreglo de bytes a UTF_8
+                String dataString = new String(data, StandardCharsets.UTF_8);
+                /* BORRAR : Prueba de que se realizó correctamente la conversion de datos */System.out.println(dataString);
+                // Guardar en un int la posicion de la primer {
+                int startIndex = dataString.indexOf('{');
+                int finalIndex = dataString.indexOf("}}") + 2;
+                // Crear una subcadena a partir de la posicion del primer { hasta el final
+                String jsonWithoutPrefix = dataString.substring(startIndex, finalIndex);
+                /* BORRAR (?) : El arraylist esta dentro de la clase por lo que no se puede ver desde afuera */clientHandlers.add(this);
+                // Asignar a nuestro objeto de la clase lr mediante gson, los datos a sus respectivos cambios
+                lr = gson.fromJson(jsonWithoutPrefix, LoginRequest.class);
+                // Asignar a nuestra variable global el ID del cliente
+                clientSessionID = lr.getSESSION();
+                /* BORRAR : Prueba de que se realizó correctamente la asignacion del sessionId */System.out.println(clientSessionID);
 
 
-            //poner el payload len
-            messageBytes = message.getBytes();
-            numberBytes = messageBytes.length;
-            buffer = ByteBuffer.allocate(4);
-            buffer.putInt(numberBytes);
 
-            // Obtén el array de bytes resultante
-            ef = buffer.array();
-            header.setPLAYLOAD_LEN(ef);
-            encapHeader[6] = ef[2];
-            encapHeader[7] = ef[3];
-            sendMessageToClient(encapHeader, messageBytes);
+                /* PREPARAR LA RESPUESTA */
 
-            System.out.println("Ya paso el getsupportservice");
+                // Crear un arreglo de byte para el header de la respuesta
+                byte[] encapHeader = new byte[12];
 
-            //String respuesta = "{\"MODULE\":\"DEVEMM\",\"OPERATION\":\"GETDEVALLVERSIONS\",\"SESSION\":\""+clientSessionID+"}";
+                encapHeader[0] = header.getV();
+                encapHeader[1] = header.getP();
+                encapHeader[2] = header.getM();
+                encapHeader[3] = header.getCSRC_COUNT();
+                encapHeader[4] = header.getPLAYLOAD_TYPE();
+                encapHeader[5] = header.getSSRC();
+                byte[] playload_len;
+                playload_len = header.getPLAYLOAD_LEN();
+                encapHeader[6] = playload_len[0];
+                encapHeader[7] = playload_len[1];
+                byte[] reserve;
+                reserve = header.getRESERVE();
+                byte[] CSRC;
+                CSRC = header.getCSRC();
+                encapHeader[8] = reserve[0];
+                encapHeader[9] = reserve[1];
+                encapHeader[10] = CSRC[0];
+                encapHeader[11] = CSRC[1];
+                String message = Response.response(lr);
 
-               String respuesta = "{\"MODULE\":\"DEVEMM\",\"OPERATION\":\"GETDEVVERSIONINFO\",\"PARAMETER\":{\"MODE\":0},\"SESSION\":\"" + clientSessionID + "\"}";
-            messageBytes = respuesta.getBytes();
-            numberBytes = messageBytes.length;
-            buffer = ByteBuffer.allocate(4);
-            buffer.putInt(numberBytes);
+                // Crear un arreglo de byte a partir de la cadena con el mensaje
+                byte[] messageBytes = message.getBytes();
+                // Guardamos espacio para manejar 4 bytes
+                ByteBuffer buffer = ByteBuffer.allocate(4);
+                // Ponemos la longitud del arreglo que contiene el mensaje que vamos a enviar
+                buffer.putInt(messageBytes.length);
 
-            // Obtén el array de bytes resultante
-            ef = buffer.array();
-            header.setPLAYLOAD_LEN(ef);
-            encapHeader[6] = ef[2];
-            encapHeader[7] = ef[3];
-            sendMessageToClient(encapHeader, messageBytes);
-            dataIniRes = new byte[1000];
-            countRes = stream.read(dataIniRes);
-            dataRes = new byte[countRes];
-            dataRes = dataIniRes;
-            dataString = new String(dataRes, StandardCharsets.UTF_8); // UTF-8 es un conjunto de caracteres comúnmente utilizado
-            System.out.println(dataString);
-            System.out.println("final?");
+                // A nuestro arreglo que maneja la longitud del mensaje le asignamos lo que tiene el buffer
+                playload_len = buffer.array();
+                /* BORRAR (?) : Para que sobreescribir el header si no se vuelve a usar */header.setPLAYLOAD_LEN(playload_len);
 
-            String res2="{\"MODULE\":\"DEVEMM\",\"OPERATION\":\"GETDEVALLVERSIONS\",\"SESSION\":\""+clientSessionID+"}";
-            messageBytes =res2.getBytes();
-            numberBytes = messageBytes.length;
-
-            buffer = ByteBuffer.allocate(4);
-            buffer.putInt(numberBytes);
-
-            // Obtén el array de bytes resultante
-            ef = buffer.array();
-            header.setPLAYLOAD_LEN(ef);
-            encapHeader[6] = ef[2];
-            encapHeader[7] = ef[3];
-            sendMessageToClient(encapHeader, messageBytes);
-
-            countRes = stream.read(dataIniRes);
-            dataRes = new byte[countRes];
-            dataRes = dataIniRes;
-            dataString = new String(dataRes, StandardCharsets.UTF_8); // UTF-8 es un conjunto de caracteres comúnmente utilizado
-            System.out.println(dataString);
-            System.out.println("Se repite el get devversion info");
-                /* respuesta = "{\"MODULE\":\"DEVEMM\",\"OPERATION\":\"GETDEVVERSIONINFO\",\"PARAMETER\":{\"MODE\":1},\"SESSION\":\""+clientSessionID+"\"}";
-                messageBytes = respuesta.getBytes();
-                numberBytes = messageBytes.length;
+                // Actualizar el header con el tamaño correcto del playloadLenght
+                encapHeader[6] = playload_len[2];
+                encapHeader[7] = playload_len[3];
+                // Enviar el mensaje
                 sendMessageToClient(encapHeader, messageBytes);
-                dataIniRes = new byte[1000];
-                countRes =stream.read(dataIniRes);
-                dataRes = new byte[countRes];
-                dataRes = dataIniRes;
-                dataString = new String(dataRes, StandardCharsets.UTF_8); // UTF-8 es un conjunto de caracteres comúnmente utilizado
-                System.out.println(dataString);
-                System.out.println("final?");
-                */
+
+                /* BORRAR : Prueba de que se llego hasta el envio del mensaje de manera correcta */System.out.println("Se realizó el envio del mensaje");
+
+                /*---------------------------------------- Comunicacion Cliente - Servidor ----------------------------------------*/
+
+            }
+
         } catch (IOException e) {
             //        closeEverything(socket, bufferedReader, bufferedWriter);
         }/*
