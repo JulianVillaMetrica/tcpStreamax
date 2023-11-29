@@ -4,6 +4,8 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.google.gson.Gson;
 
@@ -11,18 +13,15 @@ public class ClientHandler implements Runnable {
 
     public static ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
     private Socket socket;
-    private BufferedReader bufferedReader;
-    private BufferedWriter bufferedWriter;
+
     private String clientInfo;
     private Gson gson = new Gson();
     private LoginRequest lr = null;
     private  String clientSessionID;
-    private boolean isFirstConnection = true;
 
-    private boolean boolConnection= true;
+    String jsonClean;
 
-    /*variables de prueba*/
-    int c=0;
+
     Header header = new Header();
     public ClientHandler(Socket socket) throws IOException {
 
@@ -69,13 +68,42 @@ public class ClientHandler implements Runnable {
                 String dataString = new String(data, StandardCharsets.UTF_8);
                 /* BORRAR : Prueba de que se realizó correctamente la conversion de datos */System.out.println(dataString);
                 // Guardar en un int la posicion de la primer {
+
+
                 int startIndex = dataString.indexOf('{');
-                int finalIndex = dataString.indexOf("}}") + 2;
+              /*  int finalIndex = dataString.indexOf("}") + 1;
                 // Crear una subcadena a partir de la posicion del primer { hasta el final
-                String jsonWithoutPrefix = dataString.substring(startIndex, finalIndex);
+                */
+                String jsonWithoutPrefix = dataString.substring(startIndex);
+
+                int llavesAbiertas = 0;
+                int llavesCerradas = 0;
+
+                for (int i = 0; i < dataString.length(); i++) {
+                    if (dataString.charAt(i) == '{') {
+                        llavesAbiertas++;
+                    } else if (dataString.charAt(i) == '}') {
+                        llavesCerradas++;
+                    }
+
+                    if (llavesAbiertas == llavesCerradas && llavesAbiertas != 0) {
+                        jsonClean=dataString.substring(startIndex, i + 1);
+                        System.out.println("el json limpio?");
+                        System.out.println(jsonClean);
+
+                        break;
+                    }
+                }
+
+                String operation = getOperation(jsonClean);
+
+                System.out.println(operation);
+
+
+
                 /* BORRAR (?) : El arraylist esta dentro de la clase por lo que no se puede ver desde afuera */clientHandlers.add(this);
                 // Asignar a nuestro objeto de la clase lr mediante gson, los datos a sus respectivos cambios
-                lr = gson.fromJson(jsonWithoutPrefix, LoginRequest.class);
+                lr = gson.fromJson(jsonClean, LoginRequest.class);
                 // Asignar a nuestra variable global el ID del cliente
                 clientSessionID = lr.getSESSION();
                 /* BORRAR : Prueba de que se realizó correctamente la asignacion del sessionId */System.out.println(clientSessionID);
@@ -247,5 +275,16 @@ public class ClientHandler implements Runnable {
             Thread.currentThread().interrupt();
         }
     }
+    public static String getOperation(String json) {
+        Pattern pattern = Pattern.compile("\"OPERATION\":\"([^\"]+)\"");
+        Matcher matcher = pattern.matcher(json);
+
+        if (matcher.find()) {
+            return matcher.group(1);
+        } else {
+            return null;
+        }
+    }
+
 }
 
