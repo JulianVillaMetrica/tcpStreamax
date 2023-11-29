@@ -66,96 +66,100 @@ public class ClientHandler implements Runnable {
 
                 // Crear un String haciendo la conversion del arreglo de bytes a UTF_8
                 String dataString = new String(data, StandardCharsets.UTF_8);
-                /* BORRAR : Prueba de que se realizó correctamente la conversion de datos */System.out.println(dataString);
+                /* BORRAR : Prueba de que se realizó correctamente la conversion de datos */System.out.println("json inicial: "+dataString);
                 // Guardar en un int la posicion de la primer {
 
 
                 int startIndex = dataString.indexOf('{');
-              /*  int finalIndex = dataString.indexOf("}") + 1;
-                // Crear una subcadena a partir de la posicion del primer { hasta el final
-                */
-                String jsonWithoutPrefix = dataString.substring(startIndex);
 
-                int llavesAbiertas = 0;
-                int llavesCerradas = 0;
+                if(startIndex>=0) {
+                    String jsonWithoutPrefix = dataString.substring(startIndex);
 
-                for (int i = 0; i < dataString.length(); i++) {
-                    if (dataString.charAt(i) == '{') {
-                        llavesAbiertas++;
-                    } else if (dataString.charAt(i) == '}') {
-                        llavesCerradas++;
+                    int llavesAbiertas = 0;
+                    int llavesCerradas = 0;
+
+                    for (int i = 0; i < dataString.length(); i++) {
+                        if (dataString.charAt(i) == '{') {
+                            llavesAbiertas++;
+                        } else if (dataString.charAt(i) == '}') {
+                            llavesCerradas++;
+                        }
+
+                        if (llavesAbiertas == llavesCerradas && llavesAbiertas != 0) {
+                            jsonClean = dataString.substring(startIndex, i + 1);
+                            System.out.println("el json limpio?");
+                            System.out.println(jsonClean);
+                            System.out.println("Fin de Json");
+                            break;
+                        }
                     }
 
-                    if (llavesAbiertas == llavesCerradas && llavesAbiertas != 0) {
-                        jsonClean=dataString.substring(startIndex, i + 1);
-                        System.out.println("el json limpio?");
-                        System.out.println(jsonClean);
-
-                        break;
-                    }
-                }
-
-                String operation = getOperation(jsonClean);
-
-                System.out.println(operation);
+                    String operation = getOperation(jsonClean);
+                    if (operation != null) {
+                        System.out.println("Operacion: " + operation);
 
 
 
-                /* BORRAR (?) : El arraylist esta dentro de la clase por lo que no se puede ver desde afuera */clientHandlers.add(this);
-                // Asignar a nuestro objeto de la clase lr mediante gson, los datos a sus respectivos cambios
-                lr = gson.fromJson(jsonClean, LoginRequest.class);
-                // Asignar a nuestra variable global el ID del cliente
-                clientSessionID = lr.getSESSION();
-                /* BORRAR : Prueba de que se realizó correctamente la asignacion del sessionId */System.out.println(clientSessionID);
+                        /* BORRAR (?) : El arraylist esta dentro de la clase por lo que no se puede ver desde afuera */
+                        clientHandlers.add(this);
+                        // Asignar a nuestro objeto de la clase lr mediante gson, los datos a sus respectivos cambios
+                        lr = gson.fromJson(jsonClean, LoginRequest.class);
+                        // Asignar a nuestra variable global el ID del cliente
+                        clientSessionID = lr.getSESSION();
+                        /* BORRAR : Prueba de que se realizó correctamente la asignacion del sessionId */
+                        System.out.println("SessionID: " + clientSessionID);
 
 
 
-                /* PREPARAR LA RESPUESTA */
+                        /* PREPARAR LA RESPUESTA */
 
-                // Crear un arreglo de byte para el header de la respuesta
-                byte[] encapHeader = new byte[12];
+                        // Crear un arreglo de byte para el header de la respuesta
+                        byte[] encapHeader = new byte[12];
 
-                encapHeader[0] = header.getV();
-                encapHeader[1] = header.getP();
-                encapHeader[2] = header.getM();
-                encapHeader[3] = header.getCSRC_COUNT();
-                encapHeader[4] = header.getPLAYLOAD_TYPE();
-                encapHeader[5] = header.getSSRC();
-                byte[] playload_len;
-                playload_len = header.getPLAYLOAD_LEN();
-                encapHeader[6] = playload_len[0];
-                encapHeader[7] = playload_len[1];
-                byte[] reserve;
-                reserve = header.getRESERVE();
-                byte[] CSRC;
-                CSRC = header.getCSRC();
-                encapHeader[8] = reserve[0];
-                encapHeader[9] = reserve[1];
-                encapHeader[10] = CSRC[0];
-                encapHeader[11] = CSRC[1];
-                String message = Response.response(lr);
+                        encapHeader[0] = header.getV();
+                        encapHeader[1] = header.getP();
+                        encapHeader[2] = header.getM();
+                        encapHeader[3] = header.getCSRC_COUNT();
+                        encapHeader[4] = header.getPLAYLOAD_TYPE();
+                        encapHeader[5] = header.getSSRC();
+                        byte[] playload_len;
+                        playload_len = header.getPLAYLOAD_LEN();
+                        encapHeader[6] = playload_len[0];
+                        encapHeader[7] = playload_len[1];
+                        byte[] reserve;
+                        reserve = header.getRESERVE();
+                        byte[] CSRC;
+                        CSRC = header.getCSRC();
+                        encapHeader[8] = reserve[0];
+                        encapHeader[9] = reserve[1];
+                        encapHeader[10] = CSRC[0];
+                        encapHeader[11] = CSRC[1];
+                        String message = Response.response(lr);
 
-                // Crear un arreglo de byte a partir de la cadena con el mensaje
-                byte[] messageBytes = message.getBytes();
-                // Guardamos espacio para manejar 4 bytes
-                ByteBuffer buffer = ByteBuffer.allocate(4);
-                // Ponemos la longitud del arreglo que contiene el mensaje que vamos a enviar
-                buffer.putInt(messageBytes.length);
+                        // Crear un arreglo de byte a partir de la cadena con el mensaje
+                        byte[] messageBytes = message.getBytes();
+                        // Guardamos espacio para manejar 4 bytes
+                        ByteBuffer buffer = ByteBuffer.allocate(4);
+                        // Ponemos la longitud del arreglo que contiene el mensaje que vamos a enviar
+                        buffer.putInt(messageBytes.length);
 
-                // A nuestro arreglo que maneja la longitud del mensaje le asignamos lo que tiene el buffer
-                playload_len = buffer.array();
-                /* BORRAR (?) : Para que sobreescribir el header si no se vuelve a usar */header.setPLAYLOAD_LEN(playload_len);
+                        // A nuestro arreglo que maneja la longitud del mensaje le asignamos lo que tiene el buffer
+                        playload_len = buffer.array();
+                        /* BORRAR (?) : Para que sobreescribir el header si no se vuelve a usar */
+                        header.setPLAYLOAD_LEN(playload_len);
 
-                // Actualizar el header con el tamaño correcto del playloadLenght
-                encapHeader[6] = playload_len[2];
-                encapHeader[7] = playload_len[3];
-                // Enviar el mensaje
-                sendMessageToClient(encapHeader, messageBytes);
+                        // Actualizar el header con el tamaño correcto del playloadLenght
+                        encapHeader[6] = playload_len[2];
+                        encapHeader[7] = playload_len[3];
+                        // Enviar el mensaje
+                        sendMessageToClient(encapHeader, messageBytes);
 
-                /* BORRAR : Prueba de que se llego hasta el envio del mensaje de manera correcta */System.out.println("Se realizó el envio del mensaje");
+                        /* BORRAR : Prueba de que se llego hasta el envio del mensaje de manera correcta */
+                        System.out.println("Se realizó el envio del mensaje");
 
-                /*---------------------------------------- Comunicacion Cliente - Servidor ----------------------------------------*/
-
+                        /*---------------------------------------- Comunicacion Cliente - Servidor ----------------------------------------*/
+                    }//fin de chequeo de nulo
+                }//fin de chequeo si tiene o no un json
             }
 
         } catch (IOException e) {
