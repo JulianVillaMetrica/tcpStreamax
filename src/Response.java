@@ -92,7 +92,11 @@ public class Response {
     }
 
     public static String SENDALARMINFO(LoginRequest lr){
-        int ALARMTYPE = Integer.parseInt(lr.getPARAMETERS("ALARMTYPE")+"");
+        System.out.println(lr.getPARAMETERS("ALARMTYPE")+"");
+        //int ALARMTYPE = Integer.parseInt(lr.getPARAMETERS("ALARMTYPE")+"");
+        int ALARMTYPE; //es entera la alarma solo que se envia con punto decimal
+        double ALARMTYPEDOUBLE = Double.parseDouble(lr.getPARAMETERS("ALARMTYPE")+"");
+        ALARMTYPE= (int) ALARMTYPEDOUBLE;
         String alarm = "";
 
         alarm = switch (ALARMTYPE) {
