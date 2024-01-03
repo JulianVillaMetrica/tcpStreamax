@@ -66,7 +66,7 @@ public class ClientHandler implements Runnable {
                     /* RECOLECTAR LOS DATOS DEL CUERPO DEL MENSAJE */
 
                     String dataString = new String(data, StandardCharsets.UTF_8);
-                    /* BORRAR : Prueba de que se realizó correctamente la conversion de datos */
+                    /* BORRAR : Prueba de que se realizo correctamente la conversion de datos */
                     System.out.println("json inicial: " + dataString);
 
                     int startIndex = dataString.indexOf('{');
@@ -101,7 +101,7 @@ public class ClientHandler implements Runnable {
                             lr = gson.fromJson(jsonClean, LoginRequest.class);
                             // Asignar a nuestra variable global el ID del cliente
                             clientSessionID = lr.getSESSION();
-                            /* BORRAR : Prueba de que se realizó correctamente la asignacion del sessionId */
+                            /* BORRAR : Prueba de que se realizo correctamente la asignacion del sessionId */
                             System.out.println("SessionID: " + clientSessionID);
 
 
@@ -143,14 +143,14 @@ public class ClientHandler implements Runnable {
                             /* BORRAR (?) : Para que sobreescribir el header si no se vuelve a usar */
                             header.setPLAYLOAD_LEN(playload_len);
 
-                            // Actualizar el header con el tamaño correcto del playloadLenght
+                            // Actualizar el header con el tamano correcto del playloadLenght
                             encapHeader[6] = playload_len[2];
                             encapHeader[7] = playload_len[3];
                             // Enviar el mensaje
                             sendMessageToClient(encapHeader, messageBytes);
 
                             /* BORRAR : Prueba de que se llego hasta el envio del mensaje de manera correcta */
-                            System.out.println("Se realizó el envio del mensaje");
+                            System.out.println("Se realizo el envio del mensaje");
                            // clientHandlers.add(this);
                             /*---------------------------------------- Comunicacion Cliente - Servidor ----------------------------------------*/
                         }//fin de chequeo de nulo
@@ -158,8 +158,8 @@ public class ClientHandler implements Runnable {
                     else {
                         //System.out.println("Persona configurand:");
 
-                        if(dataString.charAt(0)=='$')//aqui se tiene que hacer una mejor verificacion de entrada, contraseña?
-                            configClient("esto es una persona configurando al dispoisitivo con sessionId:"+dataString);
+                        if(dataString.charAt(0)=='$')//aqui se tiene que hacer una mejor verificacion de entrada, contrasena?
+                            configClient("esto es una persona configurando al dispositivo con sessionId:"+dataString);
                         if(dataString.charAt(0)=='+'){
                             byte[] encapHeader = new byte[12];
 
@@ -169,10 +169,10 @@ public class ClientHandler implements Runnable {
                             encapHeader[3] = clientHandlers.get(0).header.getCSRC_COUNT();
                             encapHeader[4] = clientHandlers.get(0).header.getPLAYLOAD_TYPE();
                             encapHeader[5] = clientHandlers.get(0).header.getSSRC();
-                            byte[] playload_len;
-                            playload_len = clientHandlers.get(0).header.getPLAYLOAD_LEN();
-                            encapHeader[6] = playload_len[0];
-                            encapHeader[7] = playload_len[1];
+                            byte[] payload_len;
+                            payload_len = clientHandlers.get(0).header.getPLAYLOAD_LEN();
+                            encapHeader[6] = payload_len[0];
+                            encapHeader[7] = payload_len[1];
                             byte[] reserve;
                             reserve = clientHandlers.get(0).header.getRESERVE();
                             byte[] CSRC;
@@ -183,6 +183,30 @@ public class ClientHandler implements Runnable {
                             encapHeader[11] = CSRC[1];
 
                             String message= OutputRequest.GetDevVersionInfo((clientHandlers.get(0).lr));
+                            sendMessageToClient(encapHeader, message.getBytes());
+                        }else if(dataString.charAt(0)=='|'){
+                            byte[] encapHeader = new byte[12];
+
+                            encapHeader[0] = clientHandlers.get(0).header.getV();
+                            encapHeader[1] = clientHandlers.get(0).header.getP();
+                            encapHeader[2] = clientHandlers.get(0).header.getM();
+                            encapHeader[3] = clientHandlers.get(0).header.getCSRC_COUNT();
+                            encapHeader[4] = clientHandlers.get(0).header.getPLAYLOAD_TYPE();
+                            encapHeader[5] = clientHandlers.get(0).header.getSSRC();
+                            byte[] payload_len;
+                            payload_len = clientHandlers.get(0).header.getPLAYLOAD_LEN();
+                            encapHeader[6] = payload_len[0];
+                            encapHeader[7] = payload_len[1];
+                            byte[] reserve;
+                            reserve = clientHandlers.get(0).header.getRESERVE();
+                            byte[] CSRC;
+                            CSRC = clientHandlers.get(0).header.getCSRC();
+                            encapHeader[8] = reserve[0];
+                            encapHeader[9] = reserve[1];
+                            encapHeader[10] = CSRC[0];
+                            encapHeader[11] = CSRC[1];
+
+                            String message= OutputRequest.GetCTRLUTC((clientHandlers.get(0).lr));
                             sendMessageToClient(encapHeader, message.getBytes());
                         }
                     }
@@ -228,7 +252,7 @@ public class ClientHandler implements Runnable {
                 outputStream.write(message.getBytes());
                 InputStream stream = socket.getInputStream();
 
-                // Se crea un arreglo para meter los datos que se reciban, de momento de tamaño bastante grande
+                // Se crea un arreglo para meter los datos que se reciban, de momento de tamano bastante grande
                 byte[] dataIni = new byte[100000];
                 int count = stream.read(dataIni);
 
@@ -240,7 +264,7 @@ public class ClientHandler implements Runnable {
 
                 ClientHandler clientHandlerConfiguring = clientHandlers.get(0);
                 String sessionId = clientHandlerConfiguring.lr.getSESSION();
-                String ultimoJson = clientHandlerConfiguring.jsonClean;//es como pedirle el ultimo json que recibió
+                String ultimoJson = clientHandlerConfiguring.jsonClean;//es como pedirle el ultimo json que recibio
 
 
                 String messageLR = OutputRequest.GetDevVersionInfo(clientHandlerConfiguring.lr);

@@ -1,3 +1,4 @@
+import java.util.Objects;
 
 public class Response {
     private static int error;
@@ -18,12 +19,24 @@ public class Response {
         return json;
     }
     public static String response(LoginRequest lr, String MODULE, String OPERATION, String request) {
+        if(Objects.isNull(request)) {
+            return "{\"MODULE\":\"" + MODULE + "\","
+                    + "\"OPERATION\":\"" + OPERATION + "\","
+                    + "\"SESSION\":\"" + lr.getSESSION();
+            }
+
+        return "{\"MODULE\":\"" + MODULE + "\","
+                + "\"OPERATION\":\"" + OPERATION + "\","
+                + "\"SESSION\":\"" + lr.getSESSION() + "\","
+                + "\"PARAMETER\":{" + request + "}}";
+    }/*
+    public static String response(LoginRequest lr, String MODULE, String OPERATION, String request) {
         return "{\"MODULE\":\"" + MODULE + "\","
                 + "\"OPERATION\":\"" + OPERATION + "\","
                 + "\"SESSION\":\"" + lr.getSESSION() + "\","
                 + "\"PARAMETER\":{" + request + "}}";
     }
-
+    */
     public static String responseSupport(LoginRequest lr,String sessionId){
         String json = "{\"MODULE\":\"" + lr.getMODULE() + "\","
                 + "\"OPERATION\":\"" + lr.getOPERATION() + "\","

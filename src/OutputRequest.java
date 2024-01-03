@@ -16,4 +16,22 @@ public class OutputRequest {
 
         return request(ir,request,"DEVEMM", "GETDEVVERSIONINFO");
     }
+    //Obtener la hora "UTC" - Acquire UTC of the current equipment
+    public static String GetCTRLUTC(LoginRequest ir){
+        return request(ir, null,"DEVEMM", "GETCTRLUTC");
+    }
+
+    //Establecer la hora "UTC" en el dispositivo - Set the current UTC
+    public static String SetCTRLUTC(LoginRequest ir, int CURT, String Z){
+        String request = "\"CURT\":"+CURT+","+"\"Z\":"+Z;
+
+        return request(ir, request, "DEVEMM", "SETCTRLUTC");
+    }
+
+    //The Equipment Actively Requests for Timing
+    public static String CheckTime(LoginRequest ir, int HANDLE, int CURT, String Z){
+        String request = "\"HANDLE\":"+HANDLE+",\"CURT\":"+CURT+",\"Z\":"+Z;
+
+        return request(ir, request, "DEVEMM", "CHECKTIME");
+    }
 }

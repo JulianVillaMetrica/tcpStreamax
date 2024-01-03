@@ -64,8 +64,8 @@ public class Error {
             case 57 -> "the version number of upgrade file is the same";
             case 58 -> "the system is upgrading";
             case 59 -> "server port fill-in error";
-            case 60 -> "WIFI module doesn’t exist";
-            case 61 -> "wWIFI switch is off";
+            case 60 -> "WIFI module does not exist";
+            case 61 -> "WIFI switch is off";
             case 62 -> "linking";
             case 63 -> "user's MAC address is illegal";
             case 64 -> "no permissions";
@@ -103,7 +103,7 @@ public class Error {
             case 96 -> "no deleted data";
             case 97 -> "deletion is ready";
             case 98 -> "deleting";
-            case 99 -> ""; //Sin descripción
+            case 99 -> ""; //Sin descripcion
             case 100 -> "user expired";
             case 101 -> "time shift task has been deleted due to expiration";
             case 102 -> "failed to receive operation & maintenance records";
