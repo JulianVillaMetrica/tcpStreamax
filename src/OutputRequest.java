@@ -20,7 +20,7 @@ public class OutputRequest {
     }
     //Obtener la hora "UTC" - Acquire UTC of the current equipment
     public static String GetCTRLUTC(LoginRequest ir){
-        return request(ir, null,"DEVEMM", "GETCTRLUTC");
+        return request(ir,"DEVEMM", "GETCTRLUTC");
     }
 
     //Establecer la hora "UTC" en el dispositivo - Set the current UTC
