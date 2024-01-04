@@ -2,7 +2,9 @@ public class OutputRequest {
     private static String request(LoginRequest ir, String request, String MODULE, String OPERATION){
         return Response.response(ir, MODULE, OPERATION,request);
     }
-
+    private static String request(LoginRequest ir, String MODULE, String OPERATION){
+        return Response.response(ir, MODULE, OPERATION);
+    }
 
     public static String GeneralDeviceStatusQuery(LoginRequest ir, int QMASK, int SERIAL){
         String request = "\"QMASK\":"+QMASK+",\"SERIAL\":"+SERIAL;

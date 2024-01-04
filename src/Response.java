@@ -29,14 +29,12 @@ public class Response {
                 + "\"OPERATION\":\"" + OPERATION + "\","
                 + "\"SESSION\":\"" + lr.getSESSION() + "\","
                 + "\"PARAMETER\":{" + request + "}}";
-    }/*
-    public static String response(LoginRequest lr, String MODULE, String OPERATION, String request) {
-        return "{\"MODULE\":\"" + MODULE + "\","
-                + "\"OPERATION\":\"" + OPERATION + "\","
-                + "\"SESSION\":\"" + lr.getSESSION() + "\","
-                + "\"PARAMETER\":{" + request + "}}";
     }
-    */
+    public static String response(LoginRequest lr, String MODULE, String OPERATION) {
+            return "{\"MODULE\":\"" + MODULE + "\","
+                    + "\"OPERATION\":\"" + OPERATION + "\","
+                    + "\"SESSION\":\"" + lr.getSESSION();
+    }
     public static String responseSupport(LoginRequest lr,String sessionId){
         String json = "{\"MODULE\":\"" + lr.getMODULE() + "\","
                 + "\"OPERATION\":\"" + lr.getOPERATION() + "\","

@@ -158,56 +158,67 @@ public class ClientHandler implements Runnable {
                     else {
                         //System.out.println("Persona configurand:");
 
-                        if(dataString.charAt(0)=='$')//aqui se tiene que hacer una mejor verificacion de entrada, contrasena?
-                            configClient("esto es una persona configurando al dispositivo con sessionId:"+dataString);
-                        if(dataString.charAt(0)=='+'){
-                            byte[] encapHeader = new byte[12];
+                        switch (dataString.charAt(0)) {
+                            case '$' -> //aqui se tiene que hacer una mejor verificacion de entrada, contrasena?
+                                    configClient("esto es una persona configurando al dispositivo con sessionId:" + dataString);
+                            case '+' -> {
+                                byte[] encapHeader = new byte[12];
 
-                            encapHeader[0] = clientHandlers.get(0).header.getV();
-                            encapHeader[1] = clientHandlers.get(0).header.getP();
-                            encapHeader[2] = clientHandlers.get(0).header.getM();
-                            encapHeader[3] = clientHandlers.get(0).header.getCSRC_COUNT();
-                            encapHeader[4] = clientHandlers.get(0).header.getPLAYLOAD_TYPE();
-                            encapHeader[5] = clientHandlers.get(0).header.getSSRC();
-                            byte[] payload_len;
-                            payload_len = clientHandlers.get(0).header.getPLAYLOAD_LEN();
-                            encapHeader[6] = payload_len[0];
-                            encapHeader[7] = payload_len[1];
-                            byte[] reserve;
-                            reserve = clientHandlers.get(0).header.getRESERVE();
-                            byte[] CSRC;
-                            CSRC = clientHandlers.get(0).header.getCSRC();
-                            encapHeader[8] = reserve[0];
-                            encapHeader[9] = reserve[1];
-                            encapHeader[10] = CSRC[0];
-                            encapHeader[11] = CSRC[1];
+                                encapHeader[0] = clientHandlers.get(0).header.getV();
+                                encapHeader[1] = clientHandlers.get(0).header.getP();
+                                encapHeader[2] = clientHandlers.get(0).header.getM();
+                                encapHeader[3] = clientHandlers.get(0).header.getCSRC_COUNT();
+                                encapHeader[4] = clientHandlers.get(0).header.getPLAYLOAD_TYPE();
+                                encapHeader[5] = clientHandlers.get(0).header.getSSRC();
+                                byte[] payload_len;
+                                payload_len = clientHandlers.get(0).header.getPLAYLOAD_LEN();
+                                encapHeader[6] = payload_len[0];
+                                encapHeader[7] = payload_len[1];
+                                byte[] reserve;
+                                reserve = clientHandlers.get(0).header.getRESERVE();
+                                byte[] CSRC;
+                                CSRC = clientHandlers.get(0).header.getCSRC();
+                                encapHeader[8] = reserve[0];
+                                encapHeader[9] = reserve[1];
+                                encapHeader[10] = CSRC[0];
+                                encapHeader[11] = CSRC[1];
 
-                            String message= OutputRequest.GetDevVersionInfo((clientHandlers.get(0).lr));
-                            sendMessageToClient(encapHeader, message.getBytes());
-                        }else if(dataString.charAt(0)=='|'){
-                            byte[] encapHeader = new byte[12];
+                                String message = OutputRequest.GetDevVersionInfo((clientHandlers.get(0).lr));
+                                sendMessageToClient(encapHeader, message.getBytes());
+                            }
+                            case '|' -> {
+                                byte[] encapHeader = new byte[12];
 
-                            encapHeader[0] = clientHandlers.get(0).header.getV();
-                            encapHeader[1] = clientHandlers.get(0).header.getP();
-                            encapHeader[2] = clientHandlers.get(0).header.getM();
-                            encapHeader[3] = clientHandlers.get(0).header.getCSRC_COUNT();
-                            encapHeader[4] = clientHandlers.get(0).header.getPLAYLOAD_TYPE();
-                            encapHeader[5] = clientHandlers.get(0).header.getSSRC();
-                            byte[] payload_len;
-                            payload_len = clientHandlers.get(0).header.getPLAYLOAD_LEN();
-                            encapHeader[6] = payload_len[0];
-                            encapHeader[7] = payload_len[1];
-                            byte[] reserve;
-                            reserve = clientHandlers.get(0).header.getRESERVE();
-                            byte[] CSRC;
-                            CSRC = clientHandlers.get(0).header.getCSRC();
-                            encapHeader[8] = reserve[0];
-                            encapHeader[9] = reserve[1];
-                            encapHeader[10] = CSRC[0];
-                            encapHeader[11] = CSRC[1];
+                                encapHeader[0] = clientHandlers.get(0).header.getV();
+                                encapHeader[1] = clientHandlers.get(0).header.getP();
+                                encapHeader[2] = clientHandlers.get(0).header.getM();
+                                encapHeader[3] = clientHandlers.get(0).header.getCSRC_COUNT();
+                                encapHeader[4] = clientHandlers.get(0).header.getPLAYLOAD_TYPE();
+                                encapHeader[5] = clientHandlers.get(0).header.getSSRC();
+                                byte[] payload_len;
+                                payload_len = clientHandlers.get(0).header.getPLAYLOAD_LEN();
+                                encapHeader[6] = payload_len[0];
+                                encapHeader[7] = payload_len[1];
+                                byte[] reserve;
+                                reserve = clientHandlers.get(0).header.getRESERVE();
+                                byte[] CSRC;
+                                CSRC = clientHandlers.get(0).header.getCSRC();
+                                encapHeader[8] = reserve[0];
+                                encapHeader[9] = reserve[1];
+                                encapHeader[10] = CSRC[0];
+                                encapHeader[11] = CSRC[1];
 
-                            String message= OutputRequest.GetCTRLUTC((clientHandlers.get(0).lr));
-                            sendMessageToClient(encapHeader, message.getBytes());
+                                String message = OutputRequest.GetCTRLUTC((clientHandlers.get(0).lr));
+                                System.out.println(message);
+                                sendMessageToClient(encapHeader, message.getBytes());
+                            }
+                            case  '?' -> {
+                                byte[] encapHeader = prepHeader(0);
+                                String message = OutputRequest.SetCTRLUTC((clientHandlers.get(0).lr),3,"2");
+                                System.out.println(message);
+                                sendMessageToClient(encapHeader, message.getBytes());
+
+                            }
                         }
                     }
                 }//checar que si se hayan leido datos
@@ -308,6 +319,30 @@ public class ClientHandler implements Runnable {
             e.printStackTrace();
         }
     }
+    public byte[] prepHeader(int clientNum) {
+        byte[] encapHeader = new byte[12];
+
+        encapHeader[0] = clientHandlers.get(clientNum).header.getV();
+        encapHeader[1] = clientHandlers.get(clientNum).header.getP();
+        encapHeader[2] = clientHandlers.get(clientNum).header.getM();
+        encapHeader[3] = clientHandlers.get(clientNum).header.getCSRC_COUNT();
+        encapHeader[4] = clientHandlers.get(clientNum).header.getPLAYLOAD_TYPE();
+        encapHeader[5] = clientHandlers.get(clientNum).header.getSSRC();
+        byte[] payload_len;
+        payload_len = clientHandlers.get(clientNum).header.getPLAYLOAD_LEN();
+        encapHeader[6] = payload_len[0];
+        encapHeader[7] = payload_len[1];
+        byte[] reserve;
+        reserve = clientHandlers.get(clientNum).header.getRESERVE();
+        byte[] CSRC;
+        CSRC = clientHandlers.get(clientNum).header.getCSRC();
+        encapHeader[8] = reserve[0];
+        encapHeader[9] = reserve[1];
+        encapHeader[10] = CSRC[0];
+        encapHeader[11] = CSRC[1];
+        return encapHeader;
+    }
+
 
     /*Funciones de utilidad*/
     public static void wait(int ms)
