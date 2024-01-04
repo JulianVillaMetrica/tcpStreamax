@@ -18,36 +18,37 @@ public class ClientHandler implements Runnable {
     private Gson gson = new Gson();
     private LoginRequest lr = null;
     private  String clientSessionID;
+    private BufferedWriter bufferedWriter;
+    private BufferedReader bufferedReader;
 
     String jsonClean;
 
 
     Header header = new Header();
     public ClientHandler(Socket socket) throws IOException {
+        this.socket = socket;
 
+    }
+
+
+    @Override
+    public void run() {
         try {
 
             while(true){
                 /*---------------------------------------- Comunicacion Cliente - Servidor ----------------------------------------*/
-                this.socket = socket;
+                //this.socket = socket;
 
                 /* LECTURA DE DATOS */
 
-                // Se crea un objeto InputStream para estar leyendo la entrada continua del socket
                 InputStream stream = socket.getInputStream();
-                // Se crea un arreglo para meter los datos que se reciban, de momento de tamaño bastante grande
                 byte[] dataIni = new byte[100000];
-            /* En un entero se almacena el tamaño de los datos que entraron
-               y a su vez se le pasa a dataIni los datos de entrada de stream*/
                 int count = stream.read(dataIni);
-                // Se crea un arreglo secundario
                 byte[] data;
                 // Se inicializa el arreglo secundario solo con los datos de entrada (quitando el espacio restante)
 
                 if (count>1) {
                     data = Arrays.copyOfRange(dataIni, 0, count);
-
-
 
                     /* RECOLECTAR LOS DATOS DEL HEADER ENTRANTE */
 
@@ -62,21 +63,15 @@ public class ClientHandler implements Runnable {
                     header.setRESERVE(Arrays.copyOfRange(data, 8, 10));
                     header.setCSRC(Arrays.copyOfRange(data, 10, 12));
 
-
-
                     /* RECOLECTAR LOS DATOS DEL CUERPO DEL MENSAJE */
 
-                    // Crear un String haciendo la conversion del arreglo de bytes a UTF_8
                     String dataString = new String(data, StandardCharsets.UTF_8);
-                    /* BORRAR : Prueba de que se realizó correctamente la conversion de datos */
+                    /* BORRAR : Prueba de que se realizo correctamente la conversion de datos */
                     System.out.println("json inicial: " + dataString);
-                    // Guardar en un int la posicion de la primer {
-
 
                     int startIndex = dataString.indexOf('{');
-
                     if (startIndex >= 0) {
-                        String jsonWithoutPrefix = dataString.substring(startIndex);
+                        //    String jsonWithoutPrefix = dataString.substring(startIndex);
 
                         int llavesAbiertas = 0;
                         int llavesCerradas = 0;
@@ -101,15 +96,12 @@ public class ClientHandler implements Runnable {
                         if (operation != null) {
                             System.out.println("Operacion: " + operation);
 
-
-
-                            /* BORRAR (?) : El arraylist esta dentro de la clase por lo que no se puede ver desde afuera */
                             clientHandlers.add(this);
                             // Asignar a nuestro objeto de la clase lr mediante gson, los datos a sus respectivos cambios
                             lr = gson.fromJson(jsonClean, LoginRequest.class);
                             // Asignar a nuestra variable global el ID del cliente
                             clientSessionID = lr.getSESSION();
-                            /* BORRAR : Prueba de que se realizó correctamente la asignacion del sessionId */
+                            /* BORRAR : Prueba de que se realizo correctamente la asignacion del sessionId */
                             System.out.println("SessionID: " + clientSessionID);
 
 
@@ -151,73 +143,96 @@ public class ClientHandler implements Runnable {
                             /* BORRAR (?) : Para que sobreescribir el header si no se vuelve a usar */
                             header.setPLAYLOAD_LEN(playload_len);
 
-                            // Actualizar el header con el tamaño correcto del playloadLenght
+                            // Actualizar el header con el tamano correcto del playloadLenght
                             encapHeader[6] = playload_len[2];
                             encapHeader[7] = playload_len[3];
                             // Enviar el mensaje
                             sendMessageToClient(encapHeader, messageBytes);
 
                             /* BORRAR : Prueba de que se llego hasta el envio del mensaje de manera correcta */
-                            System.out.println("Se realizó el envio del mensaje");
-
+                            System.out.println("Se realizo el envio del mensaje");
+                           // clientHandlers.add(this);
                             /*---------------------------------------- Comunicacion Cliente - Servidor ----------------------------------------*/
                         }//fin de chequeo de nulo
-                    }//fin de chequeo si tiene o no un json
+                    }//fin de chequeo si tiene o no un json, en caso de que no se hace el chequeo a cer si es un usuario
+                    else {
+                        //System.out.println("Persona configurand:");
+
+                        switch (dataString.charAt(0)) {
+                            case '$' -> //aqui se tiene que hacer una mejor verificacion de entrada, contrasena?
+                                    configClient("esto es una persona configurando al dispositivo con sessionId:" + dataString);
+                            case '+' -> {
+                                byte[] encapHeader = new byte[12];
+
+                                encapHeader[0] = clientHandlers.get(0).header.getV();
+                                encapHeader[1] = clientHandlers.get(0).header.getP();
+                                encapHeader[2] = clientHandlers.get(0).header.getM();
+                                encapHeader[3] = clientHandlers.get(0).header.getCSRC_COUNT();
+                                encapHeader[4] = clientHandlers.get(0).header.getPLAYLOAD_TYPE();
+                                encapHeader[5] = clientHandlers.get(0).header.getSSRC();
+                                byte[] payload_len;
+                                payload_len = clientHandlers.get(0).header.getPLAYLOAD_LEN();
+                                encapHeader[6] = payload_len[0];
+                                encapHeader[7] = payload_len[1];
+                                byte[] reserve;
+                                reserve = clientHandlers.get(0).header.getRESERVE();
+                                byte[] CSRC;
+                                CSRC = clientHandlers.get(0).header.getCSRC();
+                                encapHeader[8] = reserve[0];
+                                encapHeader[9] = reserve[1];
+                                encapHeader[10] = CSRC[0];
+                                encapHeader[11] = CSRC[1];
+
+                                String message = OutputRequest.GetDevVersionInfo((clientHandlers.get(0).lr));
+                                sendMessageToClient(encapHeader, message.getBytes());
+                            }
+                            case '|' -> {
+                                byte[] encapHeader = new byte[12];
+
+                                encapHeader[0] = clientHandlers.get(0).header.getV();
+                                encapHeader[1] = clientHandlers.get(0).header.getP();
+                                encapHeader[2] = clientHandlers.get(0).header.getM();
+                                encapHeader[3] = clientHandlers.get(0).header.getCSRC_COUNT();
+                                encapHeader[4] = clientHandlers.get(0).header.getPLAYLOAD_TYPE();
+                                encapHeader[5] = clientHandlers.get(0).header.getSSRC();
+                                byte[] payload_len;
+                                payload_len = clientHandlers.get(0).header.getPLAYLOAD_LEN();
+                                encapHeader[6] = payload_len[0];
+                                encapHeader[7] = payload_len[1];
+                                byte[] reserve;
+                                reserve = clientHandlers.get(0).header.getRESERVE();
+                                byte[] CSRC;
+                                CSRC = clientHandlers.get(0).header.getCSRC();
+                                encapHeader[8] = reserve[0];
+                                encapHeader[9] = reserve[1];
+                                encapHeader[10] = CSRC[0];
+                                encapHeader[11] = CSRC[1];
+
+                                String message = OutputRequest.GetCTRLUTC((clientHandlers.get(0).lr));
+                                System.out.println(message);
+                                sendMessageToClient(encapHeader, message.getBytes());
+                            }
+                            case  '?' -> {
+                                byte[] encapHeader = prepHeader(0);
+                                String message = OutputRequest.SetCTRLUTC((clientHandlers.get(0).lr),3,"2");
+                                System.out.println(message);
+                                sendMessageToClient(encapHeader, message.getBytes());
+
+                            }
+                        }
+                    }
                 }//checar que si se hayan leido datos
             }
 
-        } catch (IOException e) {
-            //        closeEverything(socket, bufferedReader, bufferedWriter);
-        }/*
-        while (boolConnection) {
-            OutputRequest.GetDevVersionInfo(lr);
-            byte[] encapHeader = new byte[12];
-            //  Header header = new Header();
-            encapHeader[0] = header.getV();
-            encapHeader[1] = header.getP();
-            encapHeader[2] = header.getM();
-            encapHeader[3] = header.getCSRC_COUNT();
-            encapHeader[4] = header.getPLAYLOAD_TYPE();
-            encapHeader[5] = header.getSSRC();
-            byte[] ef = new byte[2];
-            ef = header.getPLAYLOAD_LEN();
-            encapHeader[6] = ef[0];
-            encapHeader[7] = ef[1];
-            byte[] gh = new byte[2];
-
-            byte[] ij = new byte[2];
-            gh = header.getRESERVE();
-            ij = header.getCSRC();
-            encapHeader[8] = gh[0];
-            encapHeader[9] = gh[1];
-            encapHeader[10] = ij[0];
-            encapHeader[11] = ij[1];
-            String message = OutputRequest.GetDevVersionInfo(lr);
-
-
-            //poner el payload len
-            byte[] messageBytes = message.getBytes();
-            numberBytes = messageBytes.length;
-            ByteBuffer buffer = ByteBuffer.allocate(4);
-            buffer.putInt(numberBytes);
-
-            // Obtén el array de bytes resultante
-            ef = buffer.array();
-            header.setPLAYLOAD_LEN(ef);
-            encapHeader[6] = ef[2];
-            encapHeader[7] = ef[3];
-            sendMessageToClient(encapHeader, messageBytes);
-            wait(1000);
-
-            if(c<=2){
-                c++;
-            }else {
-                boolConnection=false;
-
-            }
         }
-        */
+        catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            closeSocket(socket);
+        }
     }
+
+
 
     public void sendMessageToClient(byte[] byteArray,byte[] messageBytes) throws IOException {
 
@@ -229,29 +244,53 @@ public class ClientHandler implements Runnable {
 
         outputStream.write(messageCompleto);
     }
-    @Override
-    public void run() {
+    public void sendSimpleMessage(String message) throws IOException {
+        OutputStream outputStream = socket.getOutputStream();
 
+        outputStream.write(message.getBytes());
     }
-
- /*   public void broadcastMessage(String messageToSend) {
-        for (ClientHandler clientHandler : clientHandlers) {
-            try {
-                if (clientHandler != this) {
-                    // Envía el mensaje a todos los clientes excepto al cliente actual.
-              //      clientHandler.sendMessageToClient(clientSessionID + ": " + messageToSend);
-                }
-            } catch (IOException e) {
-                closeEverything(socket, bufferedReader, bufferedWriter);
-            }
-        }
-    }
-*/
     public void removeClientHandler() {
         clientHandlers.remove(this);
        // broadcastMessage("Server: " + clientSessionID + " has left the chat");
     }
+    public void configClient(String message) {
+        try {
 
+            while(true)
+            {
+                OutputStream outputStream = socket.getOutputStream();
+                //System.out.println(message);
+                outputStream.write(message.getBytes());
+                InputStream stream = socket.getInputStream();
+
+                // Se crea un arreglo para meter los datos que se reciban, de momento de tamano bastante grande
+                byte[] dataIni = new byte[100000];
+                int count = stream.read(dataIni);
+
+
+                System.out.println("Respuesta:");
+                String string = new String(dataIni, StandardCharsets.UTF_8);
+                System.out.println(string);
+
+
+                ClientHandler clientHandlerConfiguring = clientHandlers.get(0);
+                String sessionId = clientHandlerConfiguring.lr.getSESSION();
+                String ultimoJson = clientHandlerConfiguring.jsonClean;//es como pedirle el ultimo json que recibio
+
+
+                String messageLR = OutputRequest.GetDevVersionInfo(clientHandlerConfiguring.lr);
+
+               // clientHandlerConfiguring.
+
+                //System.out.println("El session id a configurar: "+ sessionId);
+                //System.out.println("El ultimo JSON: "+ultimoJson);
+                sendSimpleMessage(sessionId+": "+ultimoJson);
+            }
+
+        } catch (IOException e) {
+            closeEverything(socket, bufferedReader, bufferedWriter);
+        }
+    }
 
 
     public void closeEverything(Socket socket, BufferedReader bufferedReader, BufferedWriter bufferedWriter) {
@@ -270,6 +309,40 @@ public class ClientHandler implements Runnable {
             e.printStackTrace();
         }
     }
+
+    public void closeSocket(Socket socket) {
+        try {
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public byte[] prepHeader(int clientNum) {
+        byte[] encapHeader = new byte[12];
+
+        encapHeader[0] = clientHandlers.get(clientNum).header.getV();
+        encapHeader[1] = clientHandlers.get(clientNum).header.getP();
+        encapHeader[2] = clientHandlers.get(clientNum).header.getM();
+        encapHeader[3] = clientHandlers.get(clientNum).header.getCSRC_COUNT();
+        encapHeader[4] = clientHandlers.get(clientNum).header.getPLAYLOAD_TYPE();
+        encapHeader[5] = clientHandlers.get(clientNum).header.getSSRC();
+        byte[] payload_len;
+        payload_len = clientHandlers.get(clientNum).header.getPLAYLOAD_LEN();
+        encapHeader[6] = payload_len[0];
+        encapHeader[7] = payload_len[1];
+        byte[] reserve;
+        reserve = clientHandlers.get(clientNum).header.getRESERVE();
+        byte[] CSRC;
+        CSRC = clientHandlers.get(clientNum).header.getCSRC();
+        encapHeader[8] = reserve[0];
+        encapHeader[9] = reserve[1];
+        encapHeader[10] = CSRC[0];
+        encapHeader[11] = CSRC[1];
+        return encapHeader;
+    }
+
 
     /*Funciones de utilidad*/
     public static void wait(int ms)

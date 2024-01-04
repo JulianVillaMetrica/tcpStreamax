@@ -11,11 +11,11 @@ public class    Server {
 
     public void startServer() {
         try {
-            while (!serverSocket.isClosed()) {
+            while (true) {
                 Socket socket = serverSocket.accept();
                 System.out.println("A new client has connected");
-                ClientHandler clientHandler = new ClientHandler(socket);
 
+                ClientHandler clientHandler = new ClientHandler(socket);
                 Thread thread = new Thread(clientHandler);
                 thread.start();
             }
@@ -29,5 +29,6 @@ public class    Server {
         ServerSocket serverSocket = new ServerSocket(33333);
         Server server = new Server(serverSocket);
         server.startServer();
+        System.out.println("server iniciado");
     }
 }
