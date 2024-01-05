@@ -19,11 +19,6 @@ public class Response {
         return json;
     }
     public static String response(LoginRequest lr, String MODULE, String OPERATION, String request) {
-        if(Objects.isNull(request)) {
-            return "{\"MODULE\":\"" + MODULE + "\","
-                    + "\"OPERATION\":\"" + OPERATION + "\","
-                    + "\"SESSION\":\"" + lr.getSESSION();
-            }
 
         return "{\"MODULE\":\"" + MODULE + "\","
                 + "\"OPERATION\":\"" + OPERATION + "\","
@@ -35,11 +30,11 @@ public class Response {
                     + "\"OPERATION\":\"" + OPERATION + "\","
                     + "\"SESSION\":\"" + lr.getSESSION()+"\"}";
     }
-    public static String responseSupport(LoginRequest lr,String sessionId){
-        return "{\"MODULE\":\"" + lr.getMODULE() + "\","
-                + "\"OPERATION\":\"" + lr.getOPERATION() + "\","
-                + Parameters(lr)
-                + "\"SESSION\":\"" + sessionId + "\"}";
+    public static String responseSessionAfter(LoginRequest lr,String MODULE,String OPERATION, String request){
+        return "{\"MODULE\":\"" + MODULE + "\","
+                + "\"OPERATION\":\"" + OPERATION + "\","
+                + "\"PARAMETER\":{" + request + "},"
+                + "\"SESSION\":\"" + lr.getSESSION()+ "\"}";
 
     }
     public static String Parameters(LoginRequest lr){

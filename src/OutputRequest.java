@@ -2,8 +2,12 @@ public class OutputRequest {
     private static String request(LoginRequest ir, String request, String MODULE, String OPERATION){
         return Response.response(ir, MODULE, OPERATION,request);
     }
+
     private static String request(LoginRequest ir, String MODULE, String OPERATION){
         return Response.response(ir, MODULE, OPERATION);
+    }
+    private static String requestSessionAfter(LoginRequest ir, String request, String MODULE, String OPERATION){
+        return Response.responseSessionAfter(ir, MODULE, OPERATION,request);
     }
 
     public static String GeneralDeviceStatusQuery(LoginRequest ir, int QMASK, int SERIAL){
@@ -24,15 +28,15 @@ public class OutputRequest {
     }
 
     //Establecer la hora "UTC" en el dispositivo - Set the current UTC
-    public static String SetCTRLUTC(LoginRequest ir, int CURT, String Z){
-        String request = "\"CURT\":"+CURT+","+"\"Z\":"+Z;
+    public static String SetCTRLUTC(LoginRequest ir, String CURT, String Z){
+        String request = "\"CURT\":"+CURT+","+"\"Z\":\""+Z+"\"";
 
-        return request(ir, request, "DEVEMM", "SETCTRLUTC");
+        return requestSessionAfter(ir, request, "DEVEMM", "SETCTRLUTC");
     }
 
     //The Equipment Actively Requests for Timing
-    public static String CheckTime(LoginRequest ir, int HANDLE, int CURT, String Z){
-        String request = "\"HANDLE\":"+HANDLE+",\"CURT\":"+CURT+",\"Z\":"+Z;
+    public static String CheckTime(LoginRequest ir, int HANDLE, String CURT, String Z){
+        String request = "\"HANDLE\":"+HANDLE+",\"CURT\":"+CURT+",\"Z\":\""+Z+"\"";
 
         return request(ir, request, "DEVEMM", "CHECKTIME");
     }
