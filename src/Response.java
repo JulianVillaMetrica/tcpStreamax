@@ -33,7 +33,7 @@ public class Response {
     public static String response(LoginRequest lr, String MODULE, String OPERATION) {
         return "{\"MODULE\":\"" + MODULE + "\","
                     + "\"OPERATION\":\"" + OPERATION + "\","
-                    + "\"SESSION\":\"" + lr.getSESSION();
+                    + "\"SESSION\":\"" + lr.getSESSION()+"\"}";
     }
     public static String responseSupport(LoginRequest lr,String sessionId){
         return "{\"MODULE\":\"" + lr.getMODULE() + "\","
