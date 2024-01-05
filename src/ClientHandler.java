@@ -150,41 +150,31 @@ public class ClientHandler implements Runnable {
 
                             /* BORRAR : Prueba de que se llego hasta el envio del mensaje de manera correcta */
                             System.out.println("Se realizo el envio del mensaje");
-                           // clientHandlers.add(this);
+                            clientHandlers.add(this);
                             /*---------------------------------------- Comunicacion Cliente - Servidor ----------------------------------------*/
-                            /*clientHandlers.get(0).operation="GETDEVVERSIONINFO";
-                            String getRes = OutputRequest.GetDevVersionInfo(lr);
-                            System.out.println("lo que se manda desde el cliente adentro: "+getRes);
-                            encapHeader= prepHeader(0,getRes);
-                            sendMessageToClient(encapHeader,getRes.getBytes());
-*/
-  //                          clientHandlers.get(0).operation="GETDEVVERSIONINFO";
-    //                        wait(200);
-                            if(clientHandlers.get(0).operation!=null) {
-                                String getRes = "";
-                                switch (clientHandlers.get(0).operation) {
 
-                                    case "GETDEVVERSIONINFO" -> {
-                                        getRes = OutputRequest.GetDevVersionInfo(lr);
-                                    }
-                                    case "GETCTRLUTC" -> {
-                                        getRes = OutputRequest.GetCTRLUTC(lr);
-                                    }
-
-                                }
-                                System.out.println("lo que se manda desde el cliente: " + getRes);
-                                encapHeader = prepHeader(0, getRes);
-                                sendMessageToClient(encapHeader, getRes.getBytes());
-
-                                stream = socket.getInputStream();
-                                dataIni = new byte[100000];
-                                count = stream.read(dataIni);
-                                // Se inicializa el arreglo secundario solo con los datos de entrada (quitando el espacio restante)
-                                data = Arrays.copyOfRange(dataIni, 0, count);
-                                String string = new String(data, StandardCharsets.UTF_8);
-                                System.out.println("la respuesta del cliente:" + string);
-                            }
                         }//fin de chequeo de nulo
+                    }//fin de chequeo si tiene o no un json, en caso de que no se hace el chequeo a ver si es un usuario
+                    else {
+                        switch (dataString.charAt(0)) {
+                            case '$' -> //aqui se tiene que hacer una mejor verificacion de entrada, contrasena?
+                                    configClient("esto es una persona configurando al dispositivo con sessionId:" + dataString);
+                            case '+' -> {
+                                clientHandlers.get(0).operation="GETDEVVERSIONINFO";
+                            }
+                            case '|' -> {
+                                clientHandlers.get(0).operation="GETCTRLUTC";
+                            }
+                            case  '?' -> {;
+                                clientHandlers.get(0).operation="SETCTRLUTC";
+                            }
+                            case  '(' -> {;
+                                clientHandlers.get(0).operation="CHECKTIME";
+                            }
+                        }
+                       // wait(200);
+                        //sendSimpleMessage(clientHandlers.get(0).jsonClean);
+                        //aqui hago las operaciones creo
                         if(clientHandlers.get(0).operation!=null) {
                             String getRes = "";
                             switch (clientHandlers.get(0).operation) {
@@ -194,6 +184,12 @@ public class ClientHandler implements Runnable {
                                 }
                                 case "GETCTRLUTC" -> {
                                     getRes = OutputRequest.GetCTRLUTC(lr);
+                                }
+                                case "SETCTRLUTC" ->{
+                                    getRes = OutputRequest.SetCTRLUTC((clientHandlers.get(0).lr),1570775036,"480A");
+                                }
+                                case "CHECKTIME"->{
+                                    getRes = OutputRequest.CheckTime(lr,32,1570775036,"480A");
                                 }
 
                             }
@@ -208,30 +204,9 @@ public class ClientHandler implements Runnable {
                             data = Arrays.copyOfRange(dataIni, 0, count);
                             String string = new String(data, StandardCharsets.UTF_8);
                             System.out.println("la respuesta del cliente:" + string);
+                            String jsonResponse =cleanData(string);
+                            clientHandlers.get(0).jsonClean=jsonResponse;
                         }
-                    }//fin de chequeo si tiene o no un json, en caso de que no se hace el chequeo a ver si es un usuario
-                    else {
-
-
-                        switch (dataString.charAt(0)) {
-                            case '$' -> //aqui se tiene que hacer una mejor verificacion de entrada, contrasena?
-                                    configClient("esto es una persona configurando al dispositivo con sessionId:" + dataString);
-                            case '+' -> {
-
-                                clientHandlers.get(0).operation="GETDEVVERSIONINFO";
-                            }
-                            case '|' -> {
-                                clientHandlers.get(0).operation="GETCTRLUTC";
-                            }
-                            case  '?' -> {;
-                                String message = OutputRequest.SetCTRLUTC((clientHandlers.get(0).lr),3,"2");
-
-                                byte[] encapHeader = prepHeader(0,message);
-                                System.out.println(message);
-                                sendMessageToClient(encapHeader, message.getBytes());
-                            }
-                        }
-                        //aqui hago las operaciones creo
                     }
                 }//checar que si se hayan leido datos
             }
@@ -292,7 +267,6 @@ public class ClientHandler implements Runnable {
 
                 String messageLR = OutputRequest.GetDevVersionInfo(clientHandlerConfiguring.lr);
 
-               // clientHandlerConfiguring.
 
                 //System.out.println("El session id a configurar: "+ sessionId);
                 //System.out.println("El ultimo JSON: "+ultimoJson);
@@ -398,6 +372,34 @@ public class ClientHandler implements Runnable {
         }
         return  jsonClean;
     }
+    public String cleanData(String data){
+        //String dataString = new String(data, StandardCharsets.UTF_8);
+
+        int startIndex = data.indexOf('{');
+        if (startIndex >= 0) {
+
+            int llavesAbiertas = 0;
+            int llavesCerradas = 0;
+
+            for (int i = 0; i < data.length(); i++) {
+                if (data.charAt(i) == '{') {
+                    llavesAbiertas++;
+                } else if (data.charAt(i) == '}') {
+                    llavesCerradas++;
+                }
+
+                if (llavesAbiertas == llavesCerradas && llavesAbiertas != 0) {
+                    jsonClean = data.substring(startIndex, i + 1);
+                    System.out.println("el json limpio del metodo");
+                    System.out.println(jsonClean);
+                    System.out.println("fin del json limpio del metodo");
+                    break;
+                }
+            }
+        }
+        return  jsonClean;
+    }
+
 
     /*Funciones de utilidad*/
     public static void wait(int ms)
