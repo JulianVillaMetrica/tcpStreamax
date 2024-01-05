@@ -12,22 +12,27 @@ import com.google.gson.Gson;
 public class ClientHandler implements Runnable {
 
     public static ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
+    private String operation;
+    private String response;
     private Socket socket;
 
-    private String clientInfo;
     private Gson gson = new Gson();
     private LoginRequest lr = null;
+    private ParametersJson pj =null;
     private  String clientSessionID;
     private BufferedWriter bufferedWriter;
     private BufferedReader bufferedReader;
 
-    String jsonClean;
+    String jsonClean=null;
+    String jsonResponse=null;
+
 
 
     Header header = new Header();
-    public ClientHandler(Socket socket) throws IOException {
+    public ClientHandler(Socket socket, String operation, String response) throws IOException {
         this.socket = socket;
-
+        this.operation= operation;
+        this.response=response;
     }
 
 
@@ -71,7 +76,6 @@ public class ClientHandler implements Runnable {
 
                     int startIndex = dataString.indexOf('{');
                     if (startIndex >= 0) {
-                        //    String jsonWithoutPrefix = dataString.substring(startIndex);
 
                         int llavesAbiertas = 0;
                         int llavesCerradas = 0;
@@ -101,10 +105,6 @@ public class ClientHandler implements Runnable {
                             lr = gson.fromJson(jsonClean, LoginRequest.class);
                             // Asignar a nuestra variable global el ID del cliente
                             clientSessionID = lr.getSESSION();
-                            /* BORRAR : Prueba de que se realizo correctamente la asignacion del sessionId */
-                            System.out.println("SessionID: " + clientSessionID);
-
-
 
                             /* PREPARAR LA RESPUESTA */
 
@@ -129,6 +129,7 @@ public class ClientHandler implements Runnable {
                             encapHeader[9] = reserve[1];
                             encapHeader[10] = CSRC[0];
                             encapHeader[11] = CSRC[1];
+
                             String message = Response.response(lr);
 
                             // Crear un arreglo de byte a partir de la cadena con el mensaje
@@ -151,75 +152,110 @@ public class ClientHandler implements Runnable {
 
                             /* BORRAR : Prueba de que se llego hasta el envio del mensaje de manera correcta */
                             System.out.println("Se realizo el envio del mensaje");
-                           // clientHandlers.add(this);
+                            //clientHandlers.add(this);
                             /*---------------------------------------- Comunicacion Cliente - Servidor ----------------------------------------*/
-                        }//fin de chequeo de nulo
-                    }//fin de chequeo si tiene o no un json, en caso de que no se hace el chequeo a cer si es un usuario
-                    else {
-                        //System.out.println("Persona configurand:");
 
+                        }//fin de chequeo de nulos
+                       /* else
+                            sendSimpleMessage("vacio prueba");*/
+                    }//fin de chequeo si tiene o no un json, en caso de que no se hace el chequeo a ver si es un usuario
+                    else {
+                        if(clientHandlers.get(0).operation!=null) {
+                            String getRes = "";
+                            switch (clientHandlers.get(0).operation) {
+
+                                case "GETDEVVERSIONINFO" -> {
+                                    getRes = OutputRequest.GetDevVersionInfo(clientHandlers.get(0).lr);
+                                }
+                                case "GETCTRLUTC" -> {
+                                    getRes = OutputRequest.GetCTRLUTC(clientHandlers.get(0).lr);
+                                }
+                                case "SETCTRLUTC" ->{
+                                    getRes = OutputRequest.GetCTRLUTC(clientHandlers.get(0).lr);
+                                    byte[] encapHeader = prepHeader(0, getRes);
+                                    sendMessageToClient(encapHeader, getRes.getBytes());
+
+                                    stream = socket.getInputStream();
+                                    dataIni = new byte[100000];
+                                    count = stream.read(dataIni);
+                                    // Se inicializa el arreglo secundario solo con los datos de entrada (quitando el espacio restante)
+                                    data = Arrays.copyOfRange(dataIni, 0, count);
+                                    String string = new String(data, StandardCharsets.UTF_8);
+                                    jsonResponse =cleanData(string);
+                                    System.out.println("paso 1 del get:"+ jsonResponse);
+                                    pj = gson.fromJson(jsonResponse, ParametersJson.class);
+
+                                    getRes = OutputRequest.SetCTRLUTC(clientHandlers.get(0).lr,pj.getRESPONSE().getCURT(),"-360A");
+                                }
+                                case "CHECKTIME"->{
+                                    getRes = OutputRequest.GetCTRLUTC(clientHandlers.get(0).lr);
+                                    byte[] encapHeader = prepHeader(0, getRes);
+                                    sendMessageToClient(encapHeader, getRes.getBytes());
+
+                                    stream = socket.getInputStream();
+                                    dataIni = new byte[100000];
+                                    count = stream.read(dataIni);
+                                    // Se inicializa el arreglo secundario solo con los datos de entrada (quitando el espacio restante)
+                                    data = Arrays.copyOfRange(dataIni, 0, count);
+                                    String string = new String(data, StandardCharsets.UTF_8);
+                                    jsonResponse =cleanData(string);
+                                    System.out.println("paso 1 del get:"+ jsonResponse);
+                                    pj = gson.fromJson(jsonResponse, ParametersJson.class);
+
+                                    getRes = OutputRequest.CheckTime(lr,32,pj.getRESPONSE().getCURT(),pj.getRESPONSE().getZ());
+                                }
+
+                            }
+                            System.out.println("lo que se manda desde el cliente: " + getRes);
+                            byte[] encapHeader = prepHeader(0, getRes);
+                            sendMessageToClient(encapHeader, getRes.getBytes());
+
+                            stream = socket.getInputStream();
+                            dataIni = new byte[100000];
+                            count = stream.read(dataIni);
+                            // Se inicializa el arreglo secundario solo con los datos de entrada (quitando el espacio restante)
+                            data = Arrays.copyOfRange(dataIni, 0, count);
+                            String string = new String(data, StandardCharsets.UTF_8);
+                            System.out.println("la respuesta del cliente:" + string);
+                            String jsonRes =cleanData(string);
+                            if(jsonRes.contains(clientHandlers.get(0).operation)) {
+                                clientHandlers.get(0).jsonResponse = jsonRes;
+                                clientHandlers.get(0).operation = null;
+                            }
+                        }
                         switch (dataString.charAt(0)) {
                             case '$' -> //aqui se tiene que hacer una mejor verificacion de entrada, contrasena?
                                     configClient("esto es una persona configurando al dispositivo con sessionId:" + dataString);
                             case '+' -> {
-                                byte[] encapHeader = new byte[12];
-
-                                encapHeader[0] = clientHandlers.get(0).header.getV();
-                                encapHeader[1] = clientHandlers.get(0).header.getP();
-                                encapHeader[2] = clientHandlers.get(0).header.getM();
-                                encapHeader[3] = clientHandlers.get(0).header.getCSRC_COUNT();
-                                encapHeader[4] = clientHandlers.get(0).header.getPLAYLOAD_TYPE();
-                                encapHeader[5] = clientHandlers.get(0).header.getSSRC();
-                                byte[] payload_len;
-                                payload_len = clientHandlers.get(0).header.getPLAYLOAD_LEN();
-                                encapHeader[6] = payload_len[0];
-                                encapHeader[7] = payload_len[1];
-                                byte[] reserve;
-                                reserve = clientHandlers.get(0).header.getRESERVE();
-                                byte[] CSRC;
-                                CSRC = clientHandlers.get(0).header.getCSRC();
-                                encapHeader[8] = reserve[0];
-                                encapHeader[9] = reserve[1];
-                                encapHeader[10] = CSRC[0];
-                                encapHeader[11] = CSRC[1];
-
-                                String message = OutputRequest.GetDevVersionInfo((clientHandlers.get(0).lr));
-                                sendMessageToClient(encapHeader, message.getBytes());
+                                System.out.println("SI ENTRO");
+                                clientHandlers.get(0).operation="GETDEVVERSIONINFO";
+                                if(clientHandlers.get(0).jsonClean!=null)
+                                    sendSimpleMessage(clientHandlers.get(0).jsonClean);
                             }
                             case '|' -> {
-                                byte[] encapHeader = new byte[12];
 
-                                encapHeader[0] = clientHandlers.get(0).header.getV();
-                                encapHeader[1] = clientHandlers.get(0).header.getP();
-                                encapHeader[2] = clientHandlers.get(0).header.getM();
-                                encapHeader[3] = clientHandlers.get(0).header.getCSRC_COUNT();
-                                encapHeader[4] = clientHandlers.get(0).header.getPLAYLOAD_TYPE();
-                                encapHeader[5] = clientHandlers.get(0).header.getSSRC();
-                                byte[] payload_len;
-                                payload_len = clientHandlers.get(0).header.getPLAYLOAD_LEN();
-                                encapHeader[6] = payload_len[0];
-                                encapHeader[7] = payload_len[1];
-                                byte[] reserve;
-                                reserve = clientHandlers.get(0).header.getRESERVE();
-                                byte[] CSRC;
-                                CSRC = clientHandlers.get(0).header.getCSRC();
-                                encapHeader[8] = reserve[0];
-                                encapHeader[9] = reserve[1];
-                                encapHeader[10] = CSRC[0];
-                                encapHeader[11] = CSRC[1];
-
-                                String message = OutputRequest.GetCTRLUTC((clientHandlers.get(0).lr));
-                                System.out.println(message);
-                                sendMessageToClient(encapHeader, message.getBytes());
+                                System.out.println("SI ENTRO");
+                                clientHandlers.get(0).operation="GETCTRLUTC";
+                                if(clientHandlers.get(0).jsonClean!=null) {
+                                    sendSimpleMessage("de regreso: "+clientHandlers.get(0).jsonResponse);
+                                    sendSimpleMessage("fin regreso");
+                                    System.out.println("llego al get");
+                                }
                             }
-                            case  '?' -> {
-                                byte[] encapHeader = prepHeader(0);
-                                String message = OutputRequest.SetCTRLUTC((clientHandlers.get(0).lr),3,"2");
-                                System.out.println(message);
-                                sendMessageToClient(encapHeader, message.getBytes());
-
+                            case  '?' -> {;
+                                clientHandlers.get(0).operation="SETCTRLUTC";
+                                if(clientHandlers.get(0).jsonClean!=null)
+                                    sendSimpleMessage(clientHandlers.get(0).jsonClean);
                             }
+                            case  '(' -> {;
+                                clientHandlers.get(0).operation="CHECKTIME";
+                                if(clientHandlers.get(0).jsonClean!=null)
+                                    sendSimpleMessage(clientHandlers.get(0).jsonClean);
+                            }
+
                         }
+
+
                     }
                 }//checar que si se hayan leido datos
             }
@@ -241,12 +277,11 @@ public class ClientHandler implements Runnable {
         System.arraycopy(messageBytes, 0, messageCompleto, byteArray.length, messageBytes.length);
 
         OutputStream outputStream = socket.getOutputStream();
-
         outputStream.write(messageCompleto);
+
     }
     public void sendSimpleMessage(String message) throws IOException {
         OutputStream outputStream = socket.getOutputStream();
-
         outputStream.write(message.getBytes());
     }
     public void removeClientHandler() {
@@ -280,7 +315,6 @@ public class ClientHandler implements Runnable {
 
                 String messageLR = OutputRequest.GetDevVersionInfo(clientHandlerConfiguring.lr);
 
-               // clientHandlerConfiguring.
 
                 //System.out.println("El session id a configurar: "+ sessionId);
                 //System.out.println("El ultimo JSON: "+ultimoJson);
@@ -319,17 +353,17 @@ public class ClientHandler implements Runnable {
             e.printStackTrace();
         }
     }
-    public byte[] prepHeader(int clientNum) {
+    public byte[] prepHeader(int clientNum,String message) {
         byte[] encapHeader = new byte[12];
 
-        encapHeader[0] = clientHandlers.get(clientNum).header.getV();
-        encapHeader[1] = clientHandlers.get(clientNum).header.getP();
-        encapHeader[2] = clientHandlers.get(clientNum).header.getM();
-        encapHeader[3] = clientHandlers.get(clientNum).header.getCSRC_COUNT();
-        encapHeader[4] = clientHandlers.get(clientNum).header.getPLAYLOAD_TYPE();
-        encapHeader[5] = clientHandlers.get(clientNum).header.getSSRC();
+        encapHeader[0] = header.getV();
+        encapHeader[1] = header.getP();
+        encapHeader[2] = header.getM();
+        encapHeader[3] = header.getCSRC_COUNT();
+        encapHeader[4] = header.getPLAYLOAD_TYPE();
+        encapHeader[5] = header.getSSRC();
         byte[] payload_len;
-        payload_len = clientHandlers.get(clientNum).header.getPLAYLOAD_LEN();
+        payload_len = header.getPLAYLOAD_LEN();
         encapHeader[6] = payload_len[0];
         encapHeader[7] = payload_len[1];
         byte[] reserve;
@@ -340,7 +374,77 @@ public class ClientHandler implements Runnable {
         encapHeader[9] = reserve[1];
         encapHeader[10] = CSRC[0];
         encapHeader[11] = CSRC[1];
+
+        // Crear un arreglo de byte a partir de la cadena con el mensaje
+        byte[] messageBytes = message.getBytes();
+        // Guardamos espacio para manejar 4 bytes
+        ByteBuffer buffer = ByteBuffer.allocate(4);
+        // Ponemos la longitud del arreglo que contiene el mensaje que vamos a enviar
+        buffer.putInt(messageBytes.length);
+
+        // A nuestro arreglo que maneja la longitud del mensaje le asignamos lo que tiene el buffer
+        payload_len = buffer.array();
+        /* BORRAR (?) : Para que sobreescribir el header si no se vuelve a usar */
+        header.setPLAYLOAD_LEN(payload_len);
+
+        // Actualizar el header con el tamano correcto del playloadLenght
+        encapHeader[6] = payload_len[2];
+        encapHeader[7] = payload_len[3];
+
         return encapHeader;
+    }
+    public String cleanData(byte[] data){
+        String dataString = new String(data, StandardCharsets.UTF_8);
+        int startIndex = dataString.indexOf('{');
+        if (startIndex >= 0) {
+
+            int llavesAbiertas = 0;
+            int llavesCerradas = 0;
+
+            for (int i = 0; i < dataString.length(); i++) {
+                if (dataString.charAt(i) == '{') {
+                    llavesAbiertas++;
+                } else if (dataString.charAt(i) == '}') {
+                    llavesCerradas++;
+                }
+
+                if (llavesAbiertas == llavesCerradas && llavesAbiertas != 0) {
+                    jsonClean = dataString.substring(startIndex, i + 1);
+                    System.out.println("el json limpio del metodo");
+                    System.out.println(jsonClean);
+                    System.out.println("fin del json limpio del metodo");
+                    break;
+                }
+            }
+        }
+        return  jsonClean;
+    }
+    public String cleanData(String data){
+        //String dataString = new String(data, StandardCharsets.UTF_8);
+
+        int startIndex = data.indexOf('{');
+        if (startIndex >= 0) {
+
+            int llavesAbiertas = 0;
+            int llavesCerradas = 0;
+
+            for (int i = 0; i < data.length(); i++) {
+                if (data.charAt(i) == '{') {
+                    llavesAbiertas++;
+                } else if (data.charAt(i) == '}') {
+                    llavesCerradas++;
+                }
+
+                if (llavesAbiertas == llavesCerradas && llavesAbiertas != 0) {
+                    jsonClean = data.substring(startIndex, i + 1);
+                    System.out.println("el json limpio del metodo");
+                    System.out.println(jsonClean);
+                    System.out.println("fin del json limpio del metodo");
+                    break;
+                }
+            }
+        }
+        return  jsonClean;
     }
 
 
